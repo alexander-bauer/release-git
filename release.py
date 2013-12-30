@@ -148,6 +148,12 @@ def main(argc, argv):
     argv, flags = splitflags(argv, FLAGMAP)
     argc = len(argv)
 
+    # Check if we're doing a dryrun. If so, nothing should be
+    # modified.
+    dryrun = (getflagvalue("dryrun", flags) != "")
+    if dryrun:
+        print " - - DRYRUN - - "
+
     # releasetype determines what kind of release is being done. It is
     # set in the below if/else block.
     cwd = ""
@@ -189,13 +195,16 @@ def main(argc, argv):
 
     # Tag the latest commit.
     tagname = "v" + current.version.str()
-    output, code = git(current.cwd, ["tag", "-a", "-s", tagname])
-    if code != 0:
-        print output
-        return code
+    if not dryrun:
+        output, code = git(current.cwd, ["tag", "-a", "-s", tagname])
+        if code != 0:
+            print output
+            return code
+    else:
+        print "Would tag commit now"
 
     # If all went well, give the new tag name.
-    print "Tagged as %q".format(tagname)
+    print "Tagged as {}".format(tagname)
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
