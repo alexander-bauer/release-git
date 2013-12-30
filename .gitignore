@@ -1,3 +1,7 @@
+# Editor backup and temporary files
+*~
+*#*
+
 *.py[cod]
 
 # C extensions
