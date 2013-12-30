@@ -9,6 +9,55 @@ RELEASETYPE = {
     "prerelease": 3
 }
 
+FLAGMAP = {
+    "p": "prerelease"
+}
+
+# splitflags is a convenience function which parses the given
+# arguments and removes flags and their values from them. It considers
+# flags to be any argument of the form "--name", and a value to be any
+# argument following a flag. It returns the remaining arguments and
+# the flags (which are tuples, with the second element being value) in
+# that order.
+def splitflags(argv, flagmap):
+    newargv, flags = [], []
+    currentflag = None
+    
+    # For each element in the given list, check if it begins with
+    # "--". If so, strip the prefix and store that argument
+    # temporarily. If the previous element was a flag, consider the
+    # current argument a value to that flag, and append a tuple to the
+    # "flags" list. If neither of the above is true, append the item
+    # to newargv.
+    for arg in argv:
+        if currentflag != None:
+            flags.append((currentflag, arg))
+            currentflag = None
+        elif len(arg) > 2 and arg[0:2] == "--":
+            currentflag = arg[2:]
+        elif len(arg) > 1 and arg[0] == "-":
+            # If it's not a long-form flag, but instead a short-form
+            # flag, try to look it up in the map. If that fails, put
+            # it in verbatim.
+            try:
+                currentflag = flagmap[arg[1:]]
+            except KeyError:
+                currentflag = arg[1:]
+        else:
+            newargv.append(arg)
+
+    return newargv, flags
+
+# getflagvalue searches through the given list of tuples linearly and
+# return the value matching the given flag. If there is none, it
+# returns a blank string.
+def getflagvalue(flag, flags):
+    for tup in flags:
+        if tup[0] == flag:
+            return tup[1]
+    
+    return ""
+
 # git uses the subprocess module to invoke git with the given
 # arguments, and returns the stripped stdout output and the error
 # code.
@@ -95,9 +144,14 @@ class Program:
         this.version = this.findVersion()
 
 def main(argc, argv):
+    # Parse the flags, if there are any.
+    argv, flags = splitflags(argv, FLAGMAP)
+    argc = len(argv)
+
     # releasetype determines what kind of release is being done. It is
     # set in the below if/else block.
     cwd = ""
+    prerelease = getflagvalue("prerelease", flags)
 
     # Check if no argument was provided. If not, then assume we are
     # making a commit for the current release.
@@ -131,7 +185,7 @@ def main(argc, argv):
         return 1
 
     # Increment the appropriate version number, if appropriate.
-    print current.version.increment(releasetype, "").str()
+    print current.version.increment(releasetype, prerelease).str()
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
