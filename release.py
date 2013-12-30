@@ -54,6 +54,7 @@ class Program:
         version, code = git(this.cwd, ["describe", "--match",
                                        "v*.*.*",
                                        "--tags", "--abbrev=0"])
+
         if len(version) > 0 and code == 0:
             try:
                 # If found, return the parsed version.
@@ -97,9 +98,17 @@ def main(argc, argv):
         cwd = argv[2]
     else:
         print "Too many arguments"
+        return 1
+
+    # Get data from the program we're going to be working on.
+    try:
+        current = Program(cwd)
+    except OSError:
+        print "Could not open directory"
+        return 1
 
     current = Program(cwd)
     print current.version.str()
 
 if __name__ == "__main__":
-    main(len(sys.argv), sys.argv)
+    sys.exit(main(len(sys.argv), sys.argv))
