@@ -38,6 +38,29 @@ class Version:
         # Return this for convenience.
         return this
     
+    # increment modifies the current version according to the given
+    # parameters. A major change is denoted by 0, minor by 1, patch by
+    # 2, and a prerelease by 3.
+    def increment(this, releasetype, prerelease=""):
+        # Perform the appropriate incrementation.
+        if releasetype == 0:
+            this.major += 1
+            this.minor = 0
+            this.patch = 0
+            this.prerelease = prerelease
+        elif releasetype == 1:
+            this.minor += 1
+            this.patch = 0
+            this.prerelease = prerelease
+        elif releasetype == 2:
+            this.patch += 1
+            this.prerelease = prerelease
+        elif releasetype == 3:
+            this.prerelease = prerelease
+
+        # Return the new version, for convenience.
+        return this
+
     def str(this):
         return "{}.{}.{}{}{}".format(
             this.major, this.minor, this.patch,
@@ -107,8 +130,8 @@ def main(argc, argv):
         print "Could not open directory"
         return 1
 
-    current = Program(cwd)
-    print current.version.str()
+    # Increment the appropriate version number, if appropriate.
+    print current.version.increment(releasetype, "").str()
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
