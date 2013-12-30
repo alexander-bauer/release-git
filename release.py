@@ -50,9 +50,8 @@ class Program:
         if len(version) > 0 and code == 0:
             try:
                 # If found, return the parsed version.
-                v = Version.parse(version[1:])
-                return v
-            except TypeError:
+                return Version().parse(version[1:])
+            except ValueError:
                 # If there is an error, assume that the tag was wrong,
                 # for some reason.
                 pass
