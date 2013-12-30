@@ -2,6 +2,8 @@
 
 import os, subprocess, sys
 
+VERSION=""
+
 RELEASETYPE = {
     "major": 0,
     "minor": 1,
