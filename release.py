@@ -185,7 +185,17 @@ def main(argc, argv):
         return 1
 
     # Increment the appropriate version number, if appropriate.
-    print current.version.increment(releasetype, prerelease).str()
+    current.version.increment(releasetype, prerelease)
+
+    # Tag the latest commit.
+    tagname = "v" + current.version.str()
+    output, code = git(current.cwd, ["tag", "-a", "-s", tagname])
+    if code != 0:
+        print output
+        return code
+
+    # If all went well, give the new tag name.
+    print "Tagged as %q".format(tagname)
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
