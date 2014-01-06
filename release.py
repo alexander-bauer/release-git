@@ -12,6 +12,7 @@ RELEASETYPE = {
 }
 
 FLAGMAP = {
+    "C": "cwd",
     "p": "prerelease"
 }
 
@@ -83,12 +84,12 @@ def gitEdit(cwd, filepath):
     return subprocess.call(args, cwd=cwd)
 
 # gitChangelog invokes 'git log' with a specific format argument,
-# between the current HEAD and the given ref, and returns the output
-# and exit code.
-def gitChangelog(cwd, ref):
-    # Define the refrange as ref..HEAD, which selects only the commits
-    # between HEAD and the given ref.
-    refrange = ref + "..HEAD"
+# between the given top (default "HEAD") and the given ref, and
+# returns the output and exit code.
+def gitChangelog(cwd, ref, top="HEAD"):
+    # Define the refrange as ref..top, which selects only the commits
+    # between top and the given ref.
+    refrange = ref + ".." + top
 
     # Before we return, append a line seperator to the output.
     output, code = git(cwd, ["log", "--format=* %s", refrange])
@@ -183,7 +184,8 @@ class Program:
     def findVersion(this):
         version, code = git(this.cwd, ["describe", "--match",
                                        "v*.*.*",
-                                       "--tags", "--abbrev=0"])
+                                       "--tags", "--abbrev=0",
+                                       this.ref])
 
         if len(version) > 0 and code == 0:
             try:
@@ -197,11 +199,25 @@ class Program:
         # Otherwise, return the zero version.
         return Version()
 
-    def __init__(this, releasetype, cwd=""):
+    def changelog(this):
+        return gitChangelog(this.cwd, this.lasttag(), this.ref)
+
+    def lasttag(this):
+        return "v" + this.version.last(this.releasetype,
+                                       this.lastprerelease).str()
+
+    def __init__(this, releasetype, ref="HEAD", cwd=""):
+        this.ref = ref if len(ref) > 0 else "HEAD"
         this.cwd = cwd if len(cwd) > 0 else os.getcwd()
         this.version = this.findVersion()
+        this.releasetype = releasetype
         this.lastprerelease = (this.version.prerelease
                                if releasetype == 3 else "")
+
+def usage():
+    print """release <releasetype> [ref]"
+\treleasetype must be either: major, minor, patch, or prerelease. See
+\t'man release' for more details."""
 
 def main(argc, argv):
     # Parse the flags, if there are any.
@@ -216,36 +232,29 @@ def main(argc, argv):
 
     # releasetype determines what kind of release is being done. It is
     # set in the below if/else block.
-    cwd = ""
+    cwd = getflagvalue("cwd", flags)
     prerelease = getflagvalue("prerelease", flags)
 
-    # Check if no argument was provided. If not, then assume we are
-    # making a commit for the current release.
-    if argc == 1:
-        releasetype = -1
-    elif argc == 2:
+    if argc >= 2:
         try:
             # If the first argument is a release type, then set the
             # variable.
             releasetype = RELEASETYPE[argv[1]]
         except KeyError:
-            # Otherwise, treat it as a path.
-            cwd = argv[1]
-    elif argc == 3:
-        try:
-            releasetype = RELEASETYPE[argv[1]]
-        except KeyError:
-            print "Release type unknown"
+            # If not, raise an error.
+            usage()
             return 1
-
-        cwd = argv[2]
-    else:
-        print "Too many arguments"
+            
+    if argc == 3:
+        ref = argv[2]
+  
+    if argc == 1 or argc > 3:
+        usage()
         return 1
 
     # Get data from the program we're going to be working on.
     try:
-        current = Program(releasetype, cwd)
+        current = Program(releasetype, ref, cwd)
     except OSError:
         print "Could not open directory"
         return 1
@@ -255,16 +264,14 @@ def main(argc, argv):
 
     # Generate a changelog file.
     with tempfile.NamedTemporaryFile() as changelog:
-        last = "v" + current.version.last(releasetype,
-                                          current.lastprerelease).str()
-
-        changelogString, code = gitChangelog(current.cwd, last)
+        changelogString, code = current.changelog()
         if code != 0:
-            print "Changelog could not be retrieved ({}..HEAD)".format(last)
+            print "Changelog could not be retrieved ({}..{})".format(
+                current.lasttag(), current.ref)
             return
 
         changelog.write("Version {}\n\nChanged since {}:\n"
-                        .format(current.version.str(), last))
+                        .format(current.version.str(), current.lasttag()))
         changelog.write(changelogString)
         changelog.flush()
 
