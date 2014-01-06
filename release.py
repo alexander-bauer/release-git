@@ -69,6 +69,19 @@ def git(cwd, args):
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return p.communicate()[0].strip(), p.returncode
 
+# gitEdit invokes the configured git editor on the given file. It
+# should never fail, but returns the exit code anyway.
+def gitEdit(cwd, filepath):
+    # Invoke 'git var GIT_EDITOR' in order to get the name of the
+    # user's preferred editor.
+    editor, code = git(cwd, ["var", "GIT_EDITOR"])
+
+    # args will be the editor arguments, split dumbly on spaces,
+    # followed by the filepath.
+    args = editor.split() + [filepath]
+
+    return subprocess.call(args, cwd=cwd)
+
 class Version:
     def parse(this, string):
         parts = string.strip().split(".")
