@@ -137,6 +137,25 @@ class Version:
         # Return the new version, for convenience.
         return this
 
+    # last finds the most recent version acording to the given
+    # parameters. For example, the last minor version from 0.3.0 would
+    # be 0.2.0. It obeys the same releasetype rules as increment. If
+    # there is no previous version of the given type, it returns the
+    # same version.
+    def last(this, releasetype, prerelease=""):
+        lv = Version(this.major, this.minor, this.patch,
+                     prerelease=prerelease)
+        # Perform the appropriate decrementation.
+        if releasetype == 0 and lv.major > 0:
+            lv.major -= 1
+        elif releasetype == 1 and lv.minor > 0:
+            lv.minor -= 1
+            lv.patch = 0
+        elif releasetype == 2 and lv.patch > 0:
+            lv.patch -= 1
+
+        return lv
+
     def str(this):
         return "{}.{}.{}{}{}".format(
             this.major, this.minor, this.patch,
@@ -157,18 +176,19 @@ class Program:
         if len(version) > 0 and code == 0:
             try:
                 # If found, return the parsed version.
-                return Version().parse(version[1:]), version
+                return Version().parse(version[1:])
             except ValueError:
                 # If there is an error, assume that the tag was wrong,
                 # for some reason.
                 pass
         
         # Otherwise, return the zero version.
-        return Version(), ""
+        return Version()
 
     def __init__(this, cwd=""):
         this.cwd = cwd if len(cwd) > 0 else os.getcwd()
-        this.version, this.last = this.findVersion()
+        this.version = this.findVersion()
+        this.lastprerelease = this.version.prerelease
 
 def main(argc, argv):
     # Parse the flags, if there are any.
@@ -222,13 +242,16 @@ def main(argc, argv):
 
     # Generate a changelog file.
     with tempfile.NamedTemporaryFile() as changelog:
-        changelogString, code = gitChangelog(current.cwd, current.last)
+        last = "v" + current.version.last(releasetype,
+                                          current.lastprerelease).str()
+
+        changelogString, code = gitChangelog(current.cwd, last)
         if code != 0:
-            print "Changelog could not be retrieved"
+            print "Changelog could not be retrieved ({}..HEAD)".format(last)
             return
 
         changelog.write("Version {}\n\nChanged since {}:\n"
-                        .format(current.version.str(), current.last))
+                        .format(current.version.str(), last))
         changelog.write(changelogString)
         changelog.flush()
 
