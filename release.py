@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os, subprocess, sys
+import os, subprocess, sys, tempfile
 
 VERSION=""
 
@@ -89,7 +89,10 @@ def gitChangelog(cwd, ref):
     # Define the refrange as ref..HEAD, which selects only the commits
     # between HEAD and the given ref.
     refrange = ref + "..HEAD"
-    return git(cwd, ["log", "--format=* %s", refrange])
+
+    # Before we return, append a line seperator to the output.
+    output, code = git(cwd, ["log", "--format=* %s", refrange])
+    return output + os.linesep, code
 
 class Version:
     def parse(this, string):
@@ -154,18 +157,18 @@ class Program:
         if len(version) > 0 and code == 0:
             try:
                 # If found, return the parsed version.
-                return Version().parse(version[1:])
+                return Version().parse(version[1:]), version
             except ValueError:
                 # If there is an error, assume that the tag was wrong,
                 # for some reason.
                 pass
         
         # Otherwise, return the zero version.
-        return Version()
+        return Version(), ""
 
     def __init__(this, cwd=""):
         this.cwd = cwd if len(cwd) > 0 else os.getcwd()
-        this.version = this.findVersion()
+        this.version, this.last = this.findVersion()
 
 def main(argc, argv):
     # Parse the flags, if there are any.
@@ -217,15 +220,32 @@ def main(argc, argv):
     # Increment the appropriate version number, if appropriate.
     current.version.increment(releasetype, prerelease)
 
-    # Tag the latest commit.
-    tagname = "v" + current.version.str()
-    if not dryrun:
-        output, code = git(current.cwd, ["tag", "-a", "-s", tagname])
+    # Generate a changelog file.
+    with tempfile.NamedTemporaryFile() as changelog:
+        changelogString, code = gitChangelog(current.cwd, current.last)
         if code != 0:
-            print output
-            return code
-    else:
-        print "Would tag commit now"
+            print "Changelog could not be retrieved"
+            return
+
+        changelog.write("Version {}\n\nChanged since {}:\n"
+                        .format(current.version.str(), current.last))
+        changelog.write(changelogString)
+        changelog.flush()
+
+        gitEdit(current.cwd, changelog.name)
+
+        # Tag the latest commit.
+        tagname = "v" + current.version.str()
+        if not dryrun:
+            # Create the signed tag, using the changelog file as the
+            # tag message.
+            output, code = git(current.cwd, ["tag", "-a", "-s", tagname,
+                                             "-F", changelog.name])
+            if code != 0:
+                print output
+                return code
+        else:
+            print "Would tag commit now"
 
     # If all went well, give the new tag name.
     print "Tagged as {}".format(tagname)
