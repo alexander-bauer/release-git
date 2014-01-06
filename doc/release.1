@@ -1,0 +1,123 @@
+.TH RELEASE 1 "January 2014"
+
+.SH NAME
+release \- make git releases automatically
+
+.SH SYNOPSYS
+
+.B release
+[\fIflags\fR] \fIreleasetype\fR [\fIrepository\fR]
+
+.SH DESCRIPTION
+
+.B release
+is a git release-generating tool. It obeys semantic versioning, and
+uses keywords in order to advance the version. For example, \fIrelease
+minor\fR on a project whose most recent tag is \fIv0.2.1\fR, a new tag
+will be made with the label \fIv0.3.0\fR and the message being a
+changelog of all items between the new tag and \fIv0.2.0\fR. It is
+also capable of handling prerelease labels.
+
+Versions tags are always of the following form:
+.RS 4
+.RB v major . minor . patch [- prerelease ].
+.RE
+These correspond to the specification for semantic versioning, in
+which \fImajor\fR refers to non-backwards compatible versions of the
+public API, \fIminor\fR refers to backwards compatible feature
+additions and deprications (but not removals), \fIpatch\fR refers to
+bugfixes and minor changes, and \fIprerelease\fR is an optionally
+supplied (with a dash (\-) separating it from the version if so)
+string, such as "alpha", or "rc2". See full specification at
+<http://semver.org>.
+
+.SH OPTIONS
+.PP
+.B \-\-prerelease
+\fIlabel\fR
+.RS 4
+specifies the prerelease label with which the version will be
+tagged. If not supplied, the new tag will not contain a prerelease
+suffix.
+
+Note that if the \fIcurrent\fR version tag has a prerelease, then the
+version number will not be advanced - instead, the prerelease label
+will be updated, and the \fIreleasetype\fR argument will affect only
+the generated changelog.
+.RE
+
+.PP
+.B \-\-dryrun
+true
+.RS 4
+prevents an tag from actually being created, but performs other
+operations.
+.RE
+
+.SH EXAMPLES
+.PP
+.I v1.5.3
+.RS 4
+.B release major
+.br
+.RI \->\  v2.0.0 ,\ changelog\  v1.5.3 .. v2.0.0
+.RE
+.PP
+.RS 4
+.B release minor
+.br
+.RI \->\  v1.6.0 ,\ changelog\  v1.5.3 .. v1.6.0
+.RE
+.PP
+.RS 4
+.B release patch
+.br
+.RI \->\  v1.5.4 ,\ changelog\  v1.5.3 .. v1.5.4
+.RE
+.RS 4
+.B release major --prerelease alpha
+.br
+.RI \->\  v2.0.0-alpha ,\ changelog\  v1.5.3 .. v2.0.0-alpha
+.RE
+.PP
+.I v2.0.0-alpha
+.RS 4
+.PP
+.B release prerelease --prerelease beta
+.br
+.RI \->\  v2.0.0-beta ,\ changelog\  v2.0.0-alpha .. v2.0.0-beta
+.RE
+.PP
+.RS 4
+.B release major
+.br
+.RI \->\  v2.0.0 ,\ changelog\  v1.0.0 .. v2.0.0
+.RE
+.PP
+.RS 4
+.B release prerelease
+.br
+.RI \->\  v2.0.0 ,\ changelog\  v2.0.0-alpha .. v2.0.0
+.RE
+.PP
+
+
+.SH AUTHOR
+Written by Alexander Bauer.
+
+.SH "REPORTING BUGS"
+.B release
+Bug reports and feature requests are
+.I greatly
+appreciated, and should both be made to the issues page,
+<https://github.com/SashaCrofter/release-git/issues> or to the author,
+Alexander Bauer <sasha@crofter.org>.
+
+.SH COPYRIGHT
+Copyright \(co 2013 Alexander Bauer.
+
+License GPLv3+: GNU GPL version 3
+or later <http://gnu.org/licenses/gpl.html>.
+.br
+This is free software: you are free to change and redistribute it.
+There is NO WARRANTY, to the extent permitted by law.
