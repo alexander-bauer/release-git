@@ -116,23 +116,28 @@ class Version:
     
     # increment modifies the current version according to the given
     # parameters. A major change is denoted by 0, minor by 1, patch by
-    # 2, and a prerelease by 3.
+    # 2, and a prerelease by 3. If there is a prerelease in the
+    # current version, no matter the release type, it is only replaced
+    # by the given one.
     def increment(this, releasetype, prerelease=""):
+        # If there is a current prerelease, just set the new one. That
+        # way, doing any sort of increment from a prerelease just
+        # changes or strips the prerelease.
+        if len(this.prerelease) > 0:
+            this.prerelease = prerelease
+            return this
+
         # Perform the appropriate incrementation.
+        this.prerelease = prerelease
         if releasetype == 0:
             this.major += 1
             this.minor = 0
             this.patch = 0
-            this.prerelease = prerelease
         elif releasetype == 1:
             this.minor += 1
             this.patch = 0
-            this.prerelease = prerelease
         elif releasetype == 2:
             this.patch += 1
-            this.prerelease = prerelease
-        elif releasetype == 3:
-            this.prerelease = prerelease
 
         # Return the new version, for convenience.
         return this
@@ -140,11 +145,18 @@ class Version:
     # last finds the most recent version acording to the given
     # parameters. For example, the last minor version from 0.3.0 would
     # be 0.2.0. It obeys the same releasetype rules as increment. If
-    # there is no previous version of the given type, it returns the
-    # same version.
+    # there is a prerelease given, it does not decrement any version
+    # numbers. If there is no previous version of the given type, it
+    # returns the same version.
     def last(this, releasetype, prerelease=""):
         lv = Version(this.major, this.minor, this.patch,
                      prerelease=prerelease)
+
+        # If the prerelease was set, then there is no version
+        # decrementing.
+        if len(prerelease) > 0:
+            return lv
+
         # Perform the appropriate decrementation.
         if releasetype == 0 and lv.major > 0:
             lv.major -= 1
@@ -185,10 +197,11 @@ class Program:
         # Otherwise, return the zero version.
         return Version()
 
-    def __init__(this, cwd=""):
+    def __init__(this, releasetype, cwd=""):
         this.cwd = cwd if len(cwd) > 0 else os.getcwd()
         this.version = this.findVersion()
-        this.lastprerelease = this.version.prerelease
+        this.lastprerelease = (this.version.prerelease
+                               if releasetype == 3 else "")
 
 def main(argc, argv):
     # Parse the flags, if there are any.
@@ -232,7 +245,7 @@ def main(argc, argv):
 
     # Get data from the program we're going to be working on.
     try:
-        current = Program(cwd)
+        current = Program(releasetype, cwd)
     except OSError:
         print "Could not open directory"
         return 1
