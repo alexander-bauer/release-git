@@ -82,6 +82,15 @@ def gitEdit(cwd, filepath):
 
     return subprocess.call(args, cwd=cwd)
 
+# gitChangelog invokes 'git log' with a specific format argument,
+# between the current HEAD and the given ref, and returns the output
+# and exit code.
+def gitChangelog(cwd, ref):
+    # Define the refrange as ref..HEAD, which selects only the commits
+    # between HEAD and the given ref.
+    refrange = ref + "..HEAD"
+    return git(cwd, ["log", "--format=* %s", refrange])
+
 class Version:
     def parse(this, string):
         parts = string.strip().split(".")
