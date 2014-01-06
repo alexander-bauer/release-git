@@ -1,5 +1,8 @@
 # Processed executable
-release-git
+release
+
+# Compressed manual files
+man/
 
 # Editor backup and temporary files
 *~
