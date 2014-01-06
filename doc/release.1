@@ -6,7 +6,7 @@ release \- make git releases automatically
 .SH SYNOPSYS
 
 .B release
-[\fIflags\fR] \fIreleasetype\fR [\fIrepository\fR]
+[\fIflags\fR] \fIreleasetype\fR [\Icommittish\fR]
 
 .SH DESCRIPTION
 
@@ -47,7 +47,16 @@ the generated changelog.
 .RE
 
 .PP
-.B \-\-dryrun
+.BR \-\-cwd ,\  \-C
+\fIrepository\fR
+.RS 4
+causes
+.B release
+to operate as if it is in the given directory.
+.RE
+
+.PP
+.BR \-\-dryrun
 true
 .RS 4
 prevents an tag from actually being created, but performs other
