@@ -28,3 +28,4 @@ install: all
 
 clean:
 	- rm -rf $(PROGRAM_NAME)
+	- rm -rf man/
