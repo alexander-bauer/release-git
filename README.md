@@ -9,7 +9,8 @@ message being a changelog of all items between the new tag and
 *v0.2.0*. It is also capable of handling prerelease labels.
 
 Versions tags are always of the following form:
-v**major**.**minor**.**patch***[-**prerelease**]*.
+
+    v<major>.<minor>.<patch>[-prerelease]
 
 These correspond to the specification for semantic versioning, in
 which *major* refers to non-backwards compatible versions of the
