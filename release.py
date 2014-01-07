@@ -215,7 +215,7 @@ class Program:
                                if releasetype == 3 else "")
 
 def usage():
-    print """release <releasetype> [ref]"
+    print """release <releasetype> [committish]
 \treleasetype must be either: major, minor, patch, or prerelease. See
 \t'man release' for more details."""
 
@@ -234,6 +234,7 @@ def main(argc, argv):
     # set in the below if/else block.
     cwd = getflagvalue("cwd", flags)
     prerelease = getflagvalue("prerelease", flags)
+    ref = ""
 
     if argc >= 2:
         try:
