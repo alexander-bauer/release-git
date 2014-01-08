@@ -12,9 +12,13 @@ RELEASETYPE = {
 }
 
 FLAGMAP = {
+    "s": "sign",
     "C": "cwd",
     "p": "prerelease"
 }
+
+# ARGFLAGS specifies the flags which require an argument.
+ARGFLAGS = { "cwd", "prerelease" }
 
 # splitflags is a convenience function which parses the given
 # arguments and removes flags and their values from them. It considers
@@ -24,7 +28,7 @@ FLAGMAP = {
 # that order.
 def splitflags(argv, flagmap):
     newargv, flags = [], []
-    currentflag = None
+    needargfor = None
     
     # For each element in the given list, check if it begins with
     # "--". If so, strip the prefix and store that argument
@@ -33,33 +37,51 @@ def splitflags(argv, flagmap):
     # "flags" list. If neither of the above is true, append the item
     # to newargv.
     for arg in argv:
-        if currentflag != None:
-            flags.append((currentflag, arg))
-            currentflag = None
+        if needargfor != None:
+            flags.append((needargfor, arg))
+            needargfor = None
         elif len(arg) > 2 and arg[0:2] == "--":
-            currentflag = arg[2:]
+            flag = arg[2:]
+            # If the flag needs an argument, set the state variable.
+            if flag in ARGFLAGS:
+                needargfor = flag
+            else:
+                # Otherwise, just append it.
+                flags.append((flag, None))
+
         elif len(arg) > 1 and arg[0] == "-":
             # If it's not a long-form flag, but instead a short-form
             # flag, try to look it up in the map. If that fails, put
             # it in verbatim.
             try:
-                currentflag = flagmap[arg[1:]]
+                flag = flagmap[arg[1:]]
             except KeyError:
-                currentflag = arg[1:]
+                flag = arg[1:]
+
+            # As above, check if it needs an argument, and if not,
+            # just put it in the list.
+            if flag in ARGFLAGS:
+                needargfor = flag
+            else:
+                flags.append((flag, None))
+
         else:
             newargv.append(arg)
 
     return newargv, flags
 
 # getflagvalue searches through the given list of tuples linearly and
-# return the value matching the given flag. If there is none, it
-# returns a blank string.
-def getflagvalue(flag, flags):
+# return the value matching the given flag. If it is not a flag which
+# accepts a value, it returns True. If there is no such flag, it
+# returns the default value.
+def getflagvalue(flag, flags, default=None):
     for tup in flags:
         if tup[0] == flag:
-            return tup[1]
+            # If there is no value attached to the flag, return True.
+            value = tup[1]
+            return value if value != None else True
     
-    return ""
+    return default
 
 # git uses the subprocess module to invoke git with the given
 # arguments, and returns the stripped stdout output and the error
@@ -226,14 +248,15 @@ def main(argc, argv):
 
     # Check if we're doing a dryrun. If so, nothing should be
     # modified.
-    dryrun = (getflagvalue("dryrun", flags) != "")
+    dryrun = getflagvalue("dryrun", flags, default=False)
     if dryrun:
         print " - - DRYRUN - - "
 
     # releasetype determines what kind of release is being done. It is
     # set in the below if/else block.
-    cwd = getflagvalue("cwd", flags)
-    prerelease = getflagvalue("prerelease", flags)
+    cwd = getflagvalue("cwd", flags, default="")
+    prerelease = getflagvalue("prerelease", flags, default="")
+    signing = getflagvalue("sign", flags, default=False)
     ref = ""
 
     if argc >= 2:
@@ -280,11 +303,16 @@ def main(argc, argv):
 
         # Tag the latest commit.
         tagname = "v" + current.version.str()
+
+
+        # Create the tag, using the changelog file as the tag message.
+        args = ["tag", "-a", tagname, "-F", changelog.name]
+        # If we're instructed to sign the tag, add that argument.
+        if signing:
+            args.insert(2, "-s")
+
         if not dryrun:
-            # Create the signed tag, using the changelog file as the
-            # tag message.
-            output, code = git(current.cwd, ["tag", "-a", "-s", tagname,
-                                             "-F", changelog.name])
+            output, code = git(current.cwd, args)
             if code != 0:
                 print output
                 return code
@@ -292,7 +320,8 @@ def main(argc, argv):
             print "Would tag commit now"
 
     # If all went well, give the new tag name.
-    print "Tagged as {}".format(tagname)
+    print "Tagged as {} {}".format(tagname, "(signed)" if
+                                   signing else "")
 
 if __name__ == "__main__":
     sys.exit(main(len(sys.argv), sys.argv))
