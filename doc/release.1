@@ -33,6 +33,12 @@ string, such as "alpha", or "rc2". See full specification at
 
 .SH OPTIONS
 .PP
+.BR \-\-sign ,\  \-s
+.RS 4
+creates a signed tag, rather than a normal one.
+.RE
+
+.PP
 .B \-\-prerelease
 \fIlabel\fR
 .RS 4
@@ -57,7 +63,6 @@ to operate as if it is in the given directory.
 
 .PP
 .BR \-\-dryrun
-true
 .RS 4
 prevents an tag from actually being created, but performs other
 operations.
@@ -83,6 +88,7 @@ operations.
 .br
 .RI \->\  v1.5.4 ,\ changelog\  v1.5.3 .. v1.5.4
 .RE
+.PP
 .RS 4
 .B release major --prerelease alpha
 .br
