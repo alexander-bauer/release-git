@@ -4,6 +4,10 @@ import os, subprocess, sys, tempfile
 
 VERSION=""
 
+# TRUNCATEMODE determines whether trailing zeros are printed when
+# displaying versions.
+TRUNCATEMODE=False
+
 RELEASETYPE = {
     "major": 0,
     "minor": 1,
@@ -13,6 +17,7 @@ RELEASETYPE = {
 
 FLAGMAP = {
     "s": "sign",
+    "t": "truncate",
     "C": "cwd",
     "p": "prerelease"
 }
@@ -191,9 +196,23 @@ class Version:
 
         return lv
 
-    def str(this):
-        return "{}.{}.{}{}{}".format(
-            this.major, this.minor, this.patch,
+    def str(this, truncate=None):
+        # If truncate is not set, then set it based on the global
+        # mode.
+        if truncate == None:
+            truncate = TRUNCATEMODE
+
+        if truncate and this.patch == 0:
+            patch = ""
+            if this.minor == 0:
+                minor = ""
+            else:
+                minor = "." + str(this.minor)
+        else:
+            patch = "." + str(this.patch)
+            minor = "." + str(this.minor)
+
+        return "{}{}{}{}{}".format(this.major, minor, patch,
             "" if len(this.prerelease) == 0 else "-", this.prerelease)
 
     def __init__(this, major=0, minor=0, patch=0, prerelease=""):
@@ -205,7 +224,8 @@ class Version:
 class Program:
     def findVersion(this):
         version, code = git(this.cwd, ["describe", "--match",
-                                       "v*.*.*",
+                                       "v*.*.*" if not
+                                       TRUNCATEMODE else "v*",
                                        "--tags", "--abbrev=0",
                                        this.ref])
 
@@ -245,6 +265,10 @@ def main(argc, argv):
     # Parse the flags, if there are any.
     argv, flags = splitflags(argv, FLAGMAP)
     argc = len(argv)
+
+    # Set the appropriate globals from flags.
+    global TRUNCATEMODE
+    TRUNCATEMODE = getflagvalue("truncate", flags, default=False)
 
     # Check if we're doing a dryrun. If so, nothing should be
     # modified.
