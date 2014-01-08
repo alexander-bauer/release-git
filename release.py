@@ -124,20 +124,19 @@ def gitChangelog(cwd, ref, top="HEAD"):
 
 class Version:
     def parse(this, string):
-        parts = string.strip().split(".")
+        # Split the string by dash, then by dot. This will yield a
+        # prerelease if present, as well as all provided version
+        # numbers.
+        suffixparts = string.strip().split("-")
+        parts = suffixparts[0].split(".")
         
-        # Set the major and minor versions. If there are any
-        # exceptions, the parent must handle them.
+        # Set the all versions. If there are any exceptions, the
+        # parent must handle them.
         this.major = int(parts[0])
-        this.minor = int(parts[1])
-        
-        # Split the patch version from the label, if applicable, and
-        # assign them.
-        suffixparts = parts[2].split("-")
-        this.patch = int(suffixparts[0])
+        this.minor = int(parts[1]) if len(parts) > 1 else 0
+        this.patch = int(parts[2]) if len(parts) > 2 else 0
 
-        if len(suffixparts) > 1:
-            this.prerelease = suffixparts[1]
+        this.prerelease = suffixparts[1] if len(suffixparts) > 1 else ""
 
         # Return this for convenience.
         return this
