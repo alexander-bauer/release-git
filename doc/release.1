@@ -39,6 +39,15 @@ creates a signed tag, rather than a normal one.
 .RE
 
 .PP
+.BR \-\-truncate ,\  \-t
+.RS 4
+truncates version numbers and will match truncated tags when searching
+for the latest version. For example, \fIv1.2.0\fR truncates to
+\fIv1.2\fR, and \fIv2.0.0\fR truncates to \fIv2\fR. Prereleases are
+unaffected.
+.RE
+
+.PP
 .B \-\-prerelease
 \fIlabel\fR
 .RS 4
